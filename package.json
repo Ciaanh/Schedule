@@ -1,0 +1,13 @@
+{
+  "name": "schedule",
+  "version": "0.0.1",
+  "description": "",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test.js",
+    "start": "node main.js"
+  },
+  "author": "Ciaanh",
+  "license": "ISC"
+}

@@ -42,8 +42,6 @@ const ROOMS = [
 const random_gamemaster_array = (size) =>
     GAMEMASTERS.sort(() => Math.random() - 0.5).slice(0, size);
 
-
-
 const main = () => {
     const gamemasters = random_gamemaster_array(ROOMS.length);
     const sessions = ROOMS.map((room) => {
@@ -60,23 +58,14 @@ const main = () => {
     /!\ L'annonce stipule que nous cherchons un développeur senior.
     */
 
-    console.log("-- Session planner --\n");
-
-    console.log("GMs");
-    console.log(gamemasters);
-
-    console.log("\nSessions");
-    console.log(sessions);
-
-    console.log("\nRooms");
-    console.log(rooms);
-
-    // console.log("\nFiltered GMs");
-    // console.log(solver.trained_gamemasters_by_room(1, gamemasters));
-
-    // sessions.forEach(element => {
-    //     console.log(element);
-    // });
+    var result = solver.solve(sessions, gamemasters, rooms);
+    if (result.success) {
+        console.log(result.solution);
+    } else {
+        console.log("No solution found for :\n");
+        console.log(sessions);
+        console.log(gamemasters);
+    }
 };
 
 main();

@@ -1,4 +1,5 @@
 import NodeData from "./tree/NodeData.js";
+import Tree from "./tree/tree.js";
 
 // main idea
 // array of sessions with available GM for each session
@@ -20,7 +21,9 @@ export default class Solver {
     solve() {
         var root_node_data = Solver.init_sessions_tree(this.sessions, this.gamemasters);
 
-        let children = process_node(root_node_data);
+        let tree = new Tree(root_node_data);
+
+        let children = process_node(tree.Root);
 
         // we build/explore the tree of possible solutions
         while (explore_tree) {
@@ -42,6 +45,12 @@ export default class Solver {
         };
 
         return result;
+    }
+
+    process_node(node) {
+        if(node.Processed){}
+
+        // evaluate complexity
     }
 
     static init_sessions_tree(sessions, gamemasters) {

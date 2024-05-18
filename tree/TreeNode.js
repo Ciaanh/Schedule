@@ -1,5 +1,9 @@
 export default class TreeNode {
-    constructor(node_data){
-        this.data = node_data;
+    Data;
+    Processed = false;
+    Children = [];
+
+    constructor(node_data) {
+        this.Data = node_data;
     }
 }

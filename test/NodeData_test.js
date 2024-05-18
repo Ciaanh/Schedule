@@ -28,17 +28,31 @@ describe("[NodeData]", () => {
 
         it("is correctly instantiate with a valid score", () => {
             // Act
-            var node = new NodeData(
+            let node = new NodeData(
                 node_id,
                 sessions_to_assign,
                 assigned_sessions
             );
 
             // Assert
-            assert.equal(node.score, 3);
-            assert.equal(node.node_id, node_id);
-            assert.equal(node.sessions_to_assign, sessions_to_assign);
-            assert.equal(node.assigned_sessions, assigned_sessions);
+            assert.equal(node.Score, 3);
+            assert.equal(node.Node_id, node_id);
+            assert.equal(node.Sessions_to_assign, sessions_to_assign);
+            assert.equal(node.Assigned_sessions, assigned_sessions);
+        });
+
+        it("has a complexity level", () => {
+            // Act
+            let node = new NodeData(
+                node_id,
+                sessions_to_assign,
+                assigned_sessions
+            );
+
+            let complexity = node.sessions_to_assign_complexity();
+
+            // Assert
+            assert.equal(complexity, 1);
         });
     });
 
@@ -67,17 +81,17 @@ describe("[NodeData]", () => {
 
         it("is correctly instantiate with a valid score", () => {
             // Act
-            var node = new NodeData(
+            let node = new NodeData(
                 node_id,
                 sessions_to_assign,
                 assigned_sessions
             );
 
             // Assert
-            assert.equal(node.score, 4);
-            assert.equal(node.node_id, node_id);
-            assert.equal(node.sessions_to_assign, sessions_to_assign);
-            assert.equal(node.assigned_sessions, assigned_sessions);
+            assert.equal(node.Score, 4);
+            assert.equal(node.Node_id, node_id);
+            assert.equal(node.Sessions_to_assign, sessions_to_assign);
+            assert.equal(node.Assigned_sessions, assigned_sessions);
         });
     });
 

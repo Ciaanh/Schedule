@@ -1,7 +1,13 @@
 import TreeNode from "./TreeNode.js";
 
 export default class Tree {
-    constructor(root){
-        this.root = new TreeNode(root);
+    Root;
+
+    constructor(root) {
+        this.Root = new TreeNode(root);
     }
+
+    // get Root() {
+    //     return this.root;
+    // }
 }

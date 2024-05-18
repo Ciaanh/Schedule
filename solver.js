@@ -11,10 +11,14 @@ import NodeData from "./tree/NodeData.js";
 // abandon branch if session has no GM
 
 export default class Solver {
-    constructor() {}
+    constructor(sessions, gamemasters, rooms) {
+        this.sessions = sessions;
+        this.gamemasters = gamemasters;
+        this.rooms = rooms;
+    }
 
-    solve(sessions, gamemasters, rooms) {
-        var root_node_data = Solver.init_sessions_tree(sessions, gamemasters);
+    solve() {
+        var root_node_data = Solver.init_sessions_tree(this.sessions, this.gamemasters);
 
         let children = process_node(root_node_data);
 

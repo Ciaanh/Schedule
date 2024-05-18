@@ -12,15 +12,16 @@ describe("[Solver]", () => {
         let sessions;
 
         beforeEach(() => {
-            solver = new Solver();
             rooms = [{ id: 1, name: "Room1" }];
             gms = [{ id: 1, name: "GM1", trained_rooms: [0] }];
             sessions = [{ room: rooms[0] }];
+
+            solver = new Solver(sessions, gms, rooms);
         });
 
         it("fails to resolve", () => {
             // Act
-            var result = solver.solve(sessions, gms, rooms);
+            var result = solver.solve();
 
             // Assert
             assert.equal(result.success, false);
@@ -35,15 +36,16 @@ describe("[Solver]", () => {
         let sessions;
 
         beforeEach(() => {
-            solver = new Solver();
             rooms = [{ id: 1, name: "Room1" }];
             gms = [{ id: 1, name: "GM1", trained_rooms: [1] }];
             sessions = [{ room: rooms[0] }];
+
+            solver = new Solver(sessions, gms, rooms);
         });
 
         it("is resolved with a solution", () => {
             // Act
-            var result = solver.solve(sessions, gms, rooms);
+            var result = solver.solve();
 
             // Assert
             assert.equal(result.success, true);

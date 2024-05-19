@@ -75,23 +75,9 @@ export default class Solver {
                 }
             }
         } else if (node_complexity > 1) {
-            // prune_level_n
-            // get min complexity and prune them => may be impacted by the order
-            // should provide several children ?
-            try {
-                let pruned = Solver.prune_level_n(node, node_complexity);
-                children = [...pruned];
-            } catch (e) {
-                if (e instanceof UnassignedSessionError) {
-                    children = [];
-                }
-                if (e instanceof InconclusiveError) {
-                    children = [];
-                }
-                if (e instanceof AssignementViolationError) {
-                    children = [];
-                }
-            }
+            let pruned = Solver.prune_level_n(node, node_complexity);
+            children = [...pruned];
+            // process each child until solution
         } else if (node_complexity < 1) {
             // session with 0 trained GMs ?
             children = [];
@@ -148,76 +134,9 @@ export default class Solver {
         let Sessions_to_assign = structuredClone(node.Sessions_to_assign);
         let Assigned_sessions = structuredClone(node.Assigned_sessions);
 
-        let lonely_sessions = Sessions_to_assign.filter(
+        let staged_sessions = Sessions_to_assign.filter(
             (session) => session.gamemasters.length === 1
         );
-
-        Assigned_sessions.push(...structuredClone(lonely_sessions));
-        // TODO check sessions unicity in Assigned_sessions
-
-        lonely_sessions.forEach((session) => {
-            // search lonely sessions to remove them
-            let session_index = Sessions_to_assign.indexOf(session);
-
-            if (session_index > -1) {
-                Sessions_to_assign.splice(session_index, 1);
-            }
-
-            // search if session to assign has trained gamemaster
-            Sessions_to_assign.forEach((s) => {
-                let index = s.gamemasters.indexOf(session.gamemasters[0]);
-                if (index > -1) {
-                    s.gamemasters.splice(index, 1);
-                    if (s.gamemasters.length < 1) {
-                        throw new UnassignedSessionError(s.id);
-                    }
-                }
-            });
-        });
-
-        // reject solutions with violations in assigned sessions
-        let assigned_session_score =
-            Node.evaluate_sessions_violations(Assigned_sessions);
-        if (assigned_session_score > 0) {
-            throw new AssignementViolationError();
-        }
-
-        // reject solutions where score not decreasing while still having sessions to assign
-        let new_node = new Node(Sessions_to_assign, Assigned_sessions);
-        if (
-            node.score <= new_node.score &&
-            new_node.Sessions_to_assign.length > 0
-        ) {
-            throw new InconclusiveError();
-        }
-
-        if (new_node.Sessions_to_assign.length === 0 && new_node.score === 0) {
-            new_node.isSolution = true;
-        }
-        return new_node;
-    }
-
-    static prune_level_n(node, node_complexity) {
-        let Sessions_to_assign = structuredClone(node.Sessions_to_assign);
-        let Assigned_sessions = structuredClone(node.Assigned_sessions);
-
-        // check for complexity level
-        let lower_complexity_sessions = Sessions_to_assign.filter(
-            (session) => session.gamemasters.length < node_complexity
-        );
-        if (lower_complexity_sessions.length > 0) {
-            throw new InconclusiveError();
-        }
-
-        let staged_sessions = Sessions_to_assign.filter(
-            (session) => session.gamemasters.length === node_complexity
-        );
-
-// recurcive 
-// for each staged session
-// take the session, for each GM prune and build node
-// should generate node_complexity * staged_sessions.length nodes
-
 
         Assigned_sessions.push(...structuredClone(staged_sessions));
         // TODO check sessions unicity in Assigned_sessions
@@ -261,7 +180,107 @@ export default class Solver {
         if (new_node.Sessions_to_assign.length === 0 && new_node.score === 0) {
             new_node.isSolution = true;
         }
-        return [new_node];
+        return new_node;
+    }
+
+    static prune_level_n(node, node_complexity) {
+        let reference_Sessions_to_assign = structuredClone(
+            node.Sessions_to_assign
+        );
+        let reference_Assigned_sessions = structuredClone(
+            node.Assigned_sessions
+        );
+
+        // check for complexity level
+        let lower_complexity_sessions = reference_Sessions_to_assign.filter(
+            (session) => session.gamemasters.length < node_complexity
+        );
+        if (lower_complexity_sessions.length > 0) {
+            throw new InconclusiveError();
+        }
+
+        let staged_sessions = reference_Sessions_to_assign.filter(
+            (session) => session.gamemasters.length === node_complexity
+        );
+
+        let children = [];
+
+        // recurcive
+        // for each staged session
+        // take the session, for each GM prune and build node
+        // should generate node_complexity * staged_sessions.length nodes
+
+        staged_sessions.forEach((staged_session) => {
+            staged_session.gamemasters.forEach((candidate_gm) => {
+                let candidate_session = structuredClone(staged_session);
+                let candidate_sessions_to_assign = structuredClone(
+                    reference_Sessions_to_assign
+                );
+                let candidate_assigned_sessions = structuredClone(
+                    reference_Assigned_sessions
+                );
+
+                candidate_session.gamemasters = [candidate_gm];
+
+                candidate_assigned_sessions.push(candidate_session);
+
+                // search lonely sessions to remove them
+                let candidate_session_index =
+                    candidate_sessions_to_assign.indexOf(staged_session);
+
+                if (candidate_session_index > -1) {
+                    candidate_sessions_to_assign.splice(
+                        candidate_session_index,
+                        1
+                    );
+                }
+
+                // search if session to assign has trained gamemaster
+                candidate_sessions_to_assign.forEach((s) => {
+                    let index = s.gamemasters.indexOf(candidate_gm);
+                    if (index > -1) {
+                        s.gamemasters.splice(index, 1);
+                        if (s.gamemasters.length < 1) {
+                            throw new UnassignedSessionError(s.id);
+                        }
+                    }
+                });
+
+                // reject solutions with violations in assigned sessions
+                let assigned_session_score = Node.evaluate_sessions_violations(
+                    candidate_assigned_sessions
+                );
+                if (assigned_session_score > 0) {
+                    //throw new AssignementViolationError();
+                    return; // other sessions can provide a solution
+                }
+
+                // reject solutions where score not decreasing while still having sessions to assign
+                let new_node = new Node(
+                    candidate_Sessions_to_assign,
+                    candidate_Assigned_sessions
+                );
+                if (
+                    node.score <= new_node.score &&
+                    new_node.Sessions_to_assign.length > 0
+                ) {
+                    //throw new InconclusiveError();
+                    return; // other sessions can provide a solution
+                }
+
+                if (
+                    new_node.Sessions_to_assign.length === 0 &&
+                    new_node.score === 0
+                ) {
+                    new_node.isSolution = true;
+                }
+                children.push(new_node);
+            });
+        });
+
+        console.log(children);
+
+        return children;
     }
 }
 

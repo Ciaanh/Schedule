@@ -26,10 +26,14 @@ describe("[Solver]", () => {
             // Assert
             assert.equal(result.success, false);
             assert.strictEqual(result.solution, null);
+            assert.strictEqual(
+                result.reason,
+                "Rooms will never be staffed [1]"
+            );
         });
     });
 
-    describe("a valid data set", () => {
+    describe("a simple data set", () => {
         let solver;
         let gms;
         let rooms;
@@ -43,13 +47,139 @@ describe("[Solver]", () => {
             solver = new Solver(sessions, gms, rooms);
         });
 
-        it("is resolved with a solution", { only: true }, () => {
+        it("is resolved with a solution", () => {
             // Act
             let result = solver.solve();
 
             // Assert
             assert.equal(result.success, true);
             assert.notStrictEqual(result.solution, null);
+        });
+    });
+
+    describe("a normal data set", () => {
+        let solver;
+        let gms;
+        let rooms;
+        let sessions;
+
+        beforeEach(() => {
+            sessions = [
+                { room: { id: 1, name: "Le Braquage à la francaise" } },
+                { room: { id: 2, name: "Le Braquage de casino" } },
+                { room: { id: 3, name: "L'Enlèvement" } },
+                { room: { id: 4, name: "Le Métro" } },
+                { room: { id: 5, name: "Les Catacombes" } },
+                { room: { id: 6, name: "Assassin's Creed" } },
+                { room: { id: 7, name: "L'Avion" } },
+                { room: { id: 8, name: "La Mission spatiale" } },
+                { room: { id: 9, name: "Le Tremblement de terre" } },
+                { room: { id: 10, name: "Le Cinéma hanté" } },
+                { room: { id: 11, name: "Le Farwest" } },
+                { room: { id: 12, name: "Mission secrète" } },
+            ];
+            gms = [
+                { id: 12, name: "Isabella", trained_rooms: [7, 4, 12] },
+                { id: 2, name: "Alice", trained_rooms: [4, 10] },
+                { id: 6, name: "Sophia", trained_rooms: [7, 10] },
+                { id: 4, name: "Emily", trained_rooms: [8, 6, 2, 7] },
+                { id: 10, name: "Emma", trained_rooms: [5, 4] },
+                { id: 3, name: "David", trained_rooms: [5] },
+                { id: 15, name: "Benjamin", trained_rooms: [8, 4] },
+                { id: 19, name: "Alexandre", trained_rooms: [9, 2, 8] },
+                { id: 8, name: "Olivia", trained_rooms: [3, 9] },
+                { id: 1, name: "John", trained_rooms: [2, 3] },
+                { id: 16, name: "Mia", trained_rooms: [1, 3, 7, 5, 8] },
+                { id: 14, name: "Ava", trained_rooms: [9] },
+                { id: 11, name: "James", trained_rooms: [11] },
+            ];
+            rooms = [
+                { id: 1, name: "Le Braquage à la francaise" },
+                { id: 2, name: "Le Braquage de casino" },
+                { id: 3, name: "L'Enlèvement" },
+                { id: 4, name: "Le Métro" },
+                { id: 5, name: "Les Catacombes" },
+                { id: 6, name: "Assassin's Creed" },
+                { id: 7, name: "L'Avion" },
+                { id: 8, name: "La Mission spatiale" },
+                { id: 9, name: "Le Tremblement de terre" },
+                { id: 10, name: "Le Cinéma hanté" },
+                { id: 11, name: "Le Farwest" },
+                { id: 12, name: "Mission secrète" },
+            ];
+            solver = new Solver(sessions, gms, rooms);
+        });
+
+        it("is resolved with a solution", () => {
+            // Act
+            let result = solver.solve();
+
+            // Assert
+            assert.equal(result.success, true);
+            assert.notStrictEqual(result.solution, null);
+        });
+    });
+
+    describe("a failing data set", () => {
+        let solver;
+        let gms;
+        let rooms;
+        let sessions;
+
+        beforeEach(() => {
+            sessions = [
+                { room: { id: 1, name: "Le Braquage à la francaise" } },
+                { room: { id: 2, name: "Le Braquage de casino" } },
+                { room: { id: 3, name: "L'Enlèvement" } },
+                { room: { id: 4, name: "Le Métro" } },
+                { room: { id: 5, name: "Les Catacombes" } },
+                { room: { id: 6, name: "Assassin's Creed" } },
+                { room: { id: 7, name: "L'Avion" } },
+                { room: { id: 8, name: "La Mission spatiale" } },
+                { room: { id: 9, name: "Le Tremblement de terre" } },
+                { room: { id: 10, name: "Le Cinéma hanté" } },
+                { room: { id: 11, name: "Le Farwest" } },
+                { room: { id: 12, name: "Mission secrète" } },
+            ];
+            gms = [
+                { id: 13, name: "William", trained_rooms: [11] },
+                { id: 10, name: "Emma", trained_rooms: [5, 4] },
+                { id: 15, name: "Benjamin", trained_rooms: [8, 4] },
+                { id: 11, name: "James", trained_rooms: [11] },
+                { id: 12, name: "Isabella", trained_rooms: [7, 4, 12] },
+                { id: 7, name: "Daniel", trained_rooms: [8] },
+                { id: 16, name: "Mia", trained_rooms: [1, 3, 7, 5, 8] },
+                { id: 4, name: "Emily", trained_rooms: [8, 6, 2, 7] },
+                { id: 18, name: "Charlotte", trained_rooms: [10] },
+                { id: 8, name: "Olivia", trained_rooms: [3, 9] },
+                { id: 6, name: "Sophia", trained_rooms: [7, 10] },
+                { id: 1, name: "John", trained_rooms: [2, 3] },
+            ];
+            rooms = [
+                { id: 1, name: "Le Braquage à la francaise" },
+                { id: 2, name: "Le Braquage de casino" },
+                { id: 3, name: "L'Enlèvement" },
+                { id: 4, name: "Le Métro" },
+                { id: 5, name: "Les Catacombes" },
+                { id: 6, name: "Assassin's Creed" },
+                { id: 7, name: "L'Avion" },
+                { id: 8, name: "La Mission spatiale" },
+                { id: 9, name: "Le Tremblement de terre" },
+                { id: 10, name: "Le Cinéma hanté" },
+                { id: 11, name: "Le Farwest" },
+                { id: 12, name: "Mission secrète" },
+            ];
+            solver = new Solver(sessions, gms, rooms);
+        });
+
+        it("fails to resolve", () => {
+            // Act
+            let result = solver.solve();
+
+            // Assert
+            assert.equal(result.success, false);
+            assert.strictEqual(result.solution, null);
+            assert.strictEqual(result.reason, null);
         });
     });
 
@@ -80,7 +210,7 @@ describe("[Solver]", () => {
                         root_node.Sessions_to_assign[0].gamemasters[0],
                         2
                     );
-                    assert.notStrictEqual(root_node.score, null);
+                    assert.notStrictEqual(root_node.Score, null);
 
                     assert.equal(root_node.Assigned_sessions.length, 0);
                 });
@@ -119,7 +249,7 @@ describe("[Solver]", () => {
                     let result = Solver.prune_level_1(node);
 
                     // Assert
-                    assert.notEqual(node.score, result.score);
+                    assert.notEqual(node.Score, result.Score);
                     assert.notEqual(
                         node.Assigned_sessions,
                         result.Assigned_sessions

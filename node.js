@@ -12,11 +12,14 @@ export default class Node {
     }
 
     sessions_to_assign_complexity() {
-        let mapped_length = this.Sessions_to_assign.map(
+        let mapped_lengths = this.Sessions_to_assign.map(
             (s) => s.gamemasters.length
         );
-        let min_complexity = Math.min(...mapped_length);
+        if (mapped_lengths.length === 0) {
+            return 0;
+        }
 
+        let min_complexity = Math.min(...mapped_lengths);
         return min_complexity;
     }
 

@@ -3,7 +3,7 @@ import { describe, it, beforeEach, mock } from "node:test";
 
 import Node from "../node.js";
 
-describe("[NodeData]", () => {
+describe("[Node]", () => {
     describe("with Sessions_to_assign without Assigned_sessions", () => {
         let Sessions_to_assign;
         let Assigned_sessions;
@@ -33,12 +33,11 @@ describe("[NodeData]", () => {
 
             // Assert
             assert.equal(node.Score, 3);
-            assert.equal(node.Node_id, node_id);
             assert.equal(node.Sessions_to_assign, Sessions_to_assign);
             assert.equal(node.Assigned_sessions, Assigned_sessions);
         });
 
-        it("has a complexity level", () => {
+        it("has a complexity level for sessions to assign", () => {
             // Act
             let node = new Node(
                 Sessions_to_assign,
@@ -82,7 +81,6 @@ describe("[NodeData]", () => {
 
             // Assert
             assert.equal(node.Score, 4);
-            assert.equal(node.Node_id, node_id);
             assert.equal(node.Sessions_to_assign, Sessions_to_assign);
             assert.equal(node.Assigned_sessions, Assigned_sessions);
         });

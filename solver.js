@@ -1,14 +1,14 @@
 import Node from "./node.js";
 
-// main idea
-// array of sessions with available GM for each session
-// order by nb of available gms
-// iterate to prune the obvious choices (only one GM available)
-// assign room to gms
-// remove assigned rooms from gms available rooms
-// iterate with choices, handle session in order of available GM
-// for each iteration evaluate rules violations (just sum 1 for each rule violation target is to minimize value)
-// abandon branch if session has no GM
+// main idea :
+//   array of sessions with available GM for each session
+//   order by nb of available gms
+//   iterate to prune the obvious choices (only one GM available)
+//   assign room to gms
+//   remove assigned rooms from gms available rooms
+//   iterate with children having more than one GM, create branches for each case
+//   for each iteration evaluate rules violations (just sum 1 for each rule violation, target is to minimize value)
+//   abandon branch if session has no GM
 
 export default class Solver {
     constructor(sessions, gamemasters, rooms) {
@@ -18,83 +18,81 @@ export default class Solver {
     }
 
     solve() {
-        let root = Solver.init_sessions_tree(this.sessions, this.gamemasters);
+        let all_trained_rooms = this.gamemasters
+            .flatMap((gm) => gm.trained_rooms)
+            .sort();
+        let all_session_rooms = this.sessions.map((s) => s.room.id).sort();
 
-        let solution = Solver.process_node(root);
+        let room_not_trained = all_session_rooms.filter(
+            (room_id) => !all_trained_rooms.includes(room_id)
+        );
 
-        // we build/explore the tree of possible solutions
-
-        let result = {
-            solution: solution,
-            success: solution !== null,
-        };
-
-        return result;
-    }
-
-    generatePermutation(arr) {
-        let resultArr = [];
-        if (arr.length === 0) return [];
-        if (arr.length === 1) return [arr];
-
-        for (let i = 0; i < arr.length; i++) {
-            const currentElement = arr[i];
-
-            const otherElements = arr.slice(0, i).concat(arr.slice(i + 1));
-            const swappedPermutation = generatePermutation(otherElements);
-
-            for (let j = 0; j < swappedPermutation.length; j++) {
-                const finalSwappedPermutation = [currentElement].concat(
-                    swappedPermutation[j]
-                );
-
-                resultArr.push(finalSwappedPermutation);
-            }
+        if (room_not_trained.length > 0) {
+            return {
+                solution: null,
+                success: false,
+                reason: `Rooms will never be staffed [${room_not_trained.join()}]`,
+            };
         }
 
-        return resultArr;
+        let root = Solver.init_sessions_tree(this.sessions, this.gamemasters);
+        let result = Solver.process_node(root);
+        let solution = null;
+        if (result !== null) {
+            solution = result.Assigned_sessions.map((session) => {
+                let room = this.rooms.filter((r) => r.id === session.id)[0];
+                let gamemaster = this.gamemasters.filter(
+                    (g) => g.id === session.gamemasters[0]
+                )[0];
+                return {
+                    room_id: room.id,
+                    room_name: room.name,
+                    gamemaster_id: gamemaster.id,
+                    gamemaster_name: gamemaster.name,
+                };
+            });
+        }
+        return {
+            solution: solution,
+            success: solution !== null,
+            reason: null,
+        };
     }
 
     static process_node(node) {
         let node_complexity = node.sessions_to_assign_complexity();
-
         let children = [];
+
         if (node_complexity == 1) {
-            try {
-                let pruned = Solver.prune_level_1(node);
-                children = [pruned];
-            } catch (e) {
-                if (e instanceof UnassignedSessionError) {
-                    children = [];
-                }
-                if (e instanceof InconclusiveError) {
-                    children = [];
-                }
-                if (e instanceof AssignementViolationError) {
-                    children = [];
-                }
+            let pruned = Solver.prune_level_1(node);
+            if (pruned !== null) {
+                children.push(pruned);
             }
         } else if (node_complexity > 1) {
             let pruned = Solver.prune_level_n(node, node_complexity);
-            children = [...pruned];
-            // process each child until solution
+            children.push(...pruned.filter((c) => c !== null));
         } else if (node_complexity < 1) {
-            // session with 0 trained GMs ?
-            children = [];
+            // sessions with 0 trained GMs
         }
 
-        children.forEach((next_node) => {
+        for (let index = 0; index < children.length; index++) {
+            const next_node = children[index];
+
+            if (Solver.is_solution(next_node)) {
+                return next_node;
+            }
+
             let next_node_solution = Solver.process_node(next_node);
-            if (
-                next_node_solution !== null &&
-                typeof next_node_solution !== "undefined" &&
-                next_node_solution.isSolution
-            ) {
+            if (Solver.is_solution(next_node_solution)) {
                 return next_node_solution;
             }
-        });
+        }
 
         return null;
+    }
+
+    static is_solution(node) {
+        return node !== null && typeof node !== "undefined" && node.isSolution;
     }
 
     static init_sessions_tree(sessions, gamemasters) {
@@ -139,45 +137,49 @@ export default class Solver {
         );
 
         Assigned_sessions.push(...structuredClone(staged_sessions));
-        // TODO check sessions unicity in Assigned_sessions
+        // Maybe check sessions unicity in Assigned_sessions
 
-        staged_sessions.forEach((session) => {
-            // search lonely sessions to remove them
-            let session_index = Sessions_to_assign.indexOf(session);
+        try {
+            staged_sessions.forEach((session) => {
+                // search sessions with only one trained GM to assign them
+                let session_index = Sessions_to_assign.indexOf(session);
 
-            if (session_index > -1) {
-                Sessions_to_assign.splice(session_index, 1);
-            }
-
-            // search if session to assign has trained gamemaster
-            Sessions_to_assign.forEach((s) => {
-                let index = s.gamemasters.indexOf(session.gamemasters[0]);
-                if (index > -1) {
-                    s.gamemasters.splice(index, 1);
-                    if (s.gamemasters.length < 1) {
-                        throw new UnassignedSessionError(s.id);
-                    }
+                if (session_index > -1) {
+                    Sessions_to_assign.splice(session_index, 1);
                 }
-            });
-        });
 
+                // search if session to assign has trained gamemaster
+                Sessions_to_assign.forEach((s) => {
+                    let index = s.gamemasters.indexOf(session.gamemasters[0]);
+                    if (index > -1) {
+                        s.gamemasters.splice(index, 1);
+                        if (s.gamemasters.length < 1) {
+                            throw new UnassignedSessionError(s.id);
+                        }
+                    }
+                });
+            });
+        } catch (e) {
+            console.log("--   " + e.message);
+            return null;
+        }
         // reject solutions with violations in assigned sessions
         let assigned_session_score =
             Node.evaluate_sessions_violations(Assigned_sessions);
         if (assigned_session_score > 0) {
-            throw new AssignementViolationError();
+            return null; // AssignementViolation
         }
 
         // reject solutions where score not decreasing while still having sessions to assign
         let new_node = new Node(Sessions_to_assign, Assigned_sessions);
         if (
-            node.score <= new_node.score &&
+            node.Score <= new_node.Score &&
             new_node.Sessions_to_assign.length > 0
         ) {
-            throw new InconclusiveError();
+            return null; // Inconclusive
         }
 
-        if (new_node.Sessions_to_assign.length === 0 && new_node.score === 0) {
+        if (new_node.Sessions_to_assign.length === 0 && new_node.Score === 0) {
             new_node.isSolution = true;
         }
         return new_node;
@@ -196,7 +198,7 @@ export default class Solver {
             (session) => session.gamemasters.length < node_complexity
         );
         if (lower_complexity_sessions.length > 0) {
-            throw new InconclusiveError();
+            return null; // Inconclusive
         }
 
         let staged_sessions = reference_Sessions_to_assign.filter(
@@ -204,55 +206,47 @@ export default class Solver {
         );
 
         let children = [];
-
-        // recurcive
-        // for each staged session
-        // take the session, for each GM prune and build node
-        // should generate node_complexity * staged_sessions.length nodes
-
         staged_sessions.forEach((staged_session) => {
             staged_session.gamemasters.forEach((candidate_gm) => {
                 let candidate_session = structuredClone(staged_session);
-                let candidate_sessions_to_assign = structuredClone(
+                let candidate_Sessions_to_assign = structuredClone(
                     reference_Sessions_to_assign
                 );
-                let candidate_assigned_sessions = structuredClone(
+                let candidate_Assigned_sessions = structuredClone(
                     reference_Assigned_sessions
                 );
 
                 candidate_session.gamemasters = [candidate_gm];
-
-                candidate_assigned_sessions.push(candidate_session);
+                candidate_Assigned_sessions.push(candidate_session);
 
                 // search lonely sessions to remove them
                 let candidate_session_index =
-                    candidate_sessions_to_assign.indexOf(staged_session);
+                    candidate_Sessions_to_assign.indexOf(staged_session);
 
                 if (candidate_session_index > -1) {
-                    candidate_sessions_to_assign.splice(
+                    candidate_Sessions_to_assign.splice(
                         candidate_session_index,
                         1
                     );
                 }
 
                 // search if session to assign has trained gamemaster
-                candidate_sessions_to_assign.forEach((s) => {
+                candidate_Sessions_to_assign.forEach((s) => {
                     let index = s.gamemasters.indexOf(candidate_gm);
                     if (index > -1) {
                         s.gamemasters.splice(index, 1);
                         if (s.gamemasters.length < 1) {
-                            throw new UnassignedSessionError(s.id);
+                            return; // UnassignedSession
                         }
                     }
                 });
 
                 // reject solutions with violations in assigned sessions
                 let assigned_session_score = Node.evaluate_sessions_violations(
-                    candidate_assigned_sessions
+                    candidate_Assigned_sessions
                 );
                 if (assigned_session_score > 0) {
-                    //throw new AssignementViolationError();
-                    return; // other sessions can provide a solution
+                    return; // Assignement Violation, other sessions can provide a solution
                 }
 
                 // reject solutions where score not decreasing while still having sessions to assign
@@ -261,16 +255,15 @@ export default class Solver {
                     candidate_Assigned_sessions
                 );
                 if (
-                    node.score <= new_node.score &&
+                    node.Score <= new_node.Score &&
                     new_node.Sessions_to_assign.length > 0
                 ) {
-                    //throw new InconclusiveError();
-                    return; // other sessions can provide a solution
+                    return; // Inconclusive, other sessions can provide a solution
                 }
 
                 if (
                     new_node.Sessions_to_assign.length === 0 &&
-                    new_node.score === 0
+                    new_node.Score === 0
                 ) {
                     new_node.isSolution = true;
                 }
@@ -278,30 +271,17 @@ export default class Solver {
             });
         });
 
-        console.log(children);
-
-        return children;
+        if (children.length > 0) {
+            return children;
+        }
+        return null;
     }
 }
 
 // Error types
 class UnassignedSessionError extends Error {
     constructor(session_id) {
-        super(`Session with no gamemaster ${session_id}`);
+        super(`Room with no gamemaster ${session_id} during solving`);
         this.name = "UnassignedSessionError";
-    }
-}
-
-class InconclusiveError extends Error {
-    constructor() {
-        super("Inconclusive pruning");
-        this.name = "InconclusiveError";
-    }
-}
-
-class AssignementViolationError extends Error {
-    constructor() {
-        super("Assigned session with violations");
-        this.name = "AssignementViolationError";
     }
 }

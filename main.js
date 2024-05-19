@@ -58,15 +58,18 @@ const main = () => {
     /!\ L'annonce stipule que nous cherchons un développeur senior.
     */
 
+    console.log(sessions);
+    console.log(gamemasters);
+
     let solver = new Solver(sessions, gamemasters, rooms);
 
     let result = solver.solve(sessions, gamemasters, rooms);
     if (result.success) {
+        console.log("Success\n");
         console.log(result.solution);
     } else {
-        console.log("No solution found for :\n");
-        console.log(sessions);
-        console.log(gamemasters);
+        console.log("Fail\n");
+        console.log(result.reason);
     }
 };
 

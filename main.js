@@ -1,4 +1,4 @@
-import solver from "./solver.js";
+import Solver from "./solver.js";
 
 const GAMEMASTERS = [
     { id: 1, name: "John", trained_rooms: [2, 3] },
@@ -58,7 +58,9 @@ const main = () => {
     /!\ L'annonce stipule que nous cherchons un développeur senior.
     */
 
-    var result = solver.solve(sessions, gamemasters, rooms);
+    let solver = new Solver(sessions, gamemasters, rooms);
+
+    let result = solver.solve(sessions, gamemasters, rooms);
     if (result.success) {
         console.log(result.solution);
     } else {
